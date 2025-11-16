@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>135 St – 2/3 Downtown</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+    }
+    body {
+      background: #02040a;
+      color: #f9fafb;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+    .board {
+      background: #050814;
+      border-radius: 24px;
+      padding: 28px 32px;
+      box-shadow: 0 22px 60px rgba(0,0,0,0.6);
+      max-width: 520px;
+      width: 100%;
+      border: 1px solid rgba(148,163,184,0.35);
+    }
+    .board-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 18px;
+      gap: 12px;
+    }
+    .station-name {
+      font-size: 32px;
+      font-weight: 800;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+    .subtitle {
+      font-size: 18px;
+      color: #9ca3af;
+      white-space: nowrap;
+    }
+    .updated-time {
+      font-size: 15px;
+      color: #9ca3af;
+      margin-bottom: 18px;
+    }
+    .line-section {
+      margin-top: 18px;
+      padding-top: 14px;
+      border-top: 1px solid rgba(55,65,81,0.9);
+    }
+    .arrival-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 0;
+      font-size: 20px;
+    }
+    .badge {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      font-weight: 800;
+      color: white;
+      margin-right: 12px;
+    }
+    .badge-2,
+    .badge-3 {
+      background: #ee352e;
+      box-shadow: 0 0 12px rgba(239,68,68,0.7);
+    }
+    .arrival-time {
+      color: #fbbf24;
+      font-weight: 700;
+      min-width: 80px;
+      text-align: right;
+    }
+    .footer-note {
+      margin-top: 20px;
+      font-size: 12px;
+      text-align: center;
+      color: #6b7280;
+    }
+    .error {
+      color: #f97373;
+      font-size: 14px;
+      margin-top: 12px;
+      text-align: center;
+    }
+
+    @media (min-width: 768px) {
+      .arrival-row { font-size: 22px; }
+      .arrival-time { font-size: 24px; }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="board">
+    <div class="board-header">
+      <div>
+        <div class="station-name">135 St</div>
+        <div class="subtitle">2 • 3 Trains — Downtown</div>
+      </div>
+      <div class="subtitle" id="current-time"></div>
+    </div>
+
+    <div class="updated-time" id="updated">Loading…</div>
+    <div id="error" class="error"></div>
+    <div id="rows"></div>
+
+    <div class="footer-note">Powered by mta135 API • Refreshes every 30 seconds</div>
+  </div>
+
+  <script>
+    const API = "/.netlify/functions/mta135";
+
+    function formatTime(ts) {
+      return new Date(ts).toLocaleTimeString([], {
+        hour: "numeric",
+        minute: "2-digit",
+      });
+    }
+
+    function updateClock() {
+      document.getElementById("current-time").textContent = formatTime(Date.now());
+    }
+
+    async function loadTimes() {
+      const rows = document.getElementById("rows");
+      const updated = document.getElementById("updated");
+      const error = document.getElementById("error");
+
+      try {
+        error.textContent = "";
+        rows.innerHTML = "<div class='subtitle'>Loading…</div>";
+
+        const res = await fetch(API, { cache: "no-store" });
+        const data = await res.json();
+
+        if (data.error) {
+          error.textContent = "Error loading train times";
+          console.error(data.error, data.detail);
+          return;
+        }
+
+        updated.textContent = "Updated " + formatTime(data.updatedAt);
+
+        rows.innerHTML = "";
+
+        if (!data.trains || data.trains.length === 0) {
+          rows.innerHTML = "<div class='subtitle'>No trains soon</div>";
+          return;
+        }
+
+        data.trains.forEach((t) => {
+          const div = document.createElement("div");
+          div.className = "arrival-row";
+
+          div.innerHTML = `
+            <span>
+              <span class="badge badge-${t.route}">${t.route}</span>
+              Downtown
+            </span>
+            <span class="arrival-time">${t.minutes} min</span>
+          `;
+
+          rows.appendChild(div);
+        });
+      } catch (e) {
+        console.error(e);
+        error.textContent = "Server error";
+      }
+    }
+
+    updateClock();
+    setInterval(updateClock, 1000);
+
+    loadTimes();
+    setInterval(loadTimes, 30000);
+  </script>
+</body>
+</html>
