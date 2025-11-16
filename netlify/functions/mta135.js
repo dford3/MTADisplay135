@@ -1,30 +1,42 @@
 // netlify/functions/mta135.js
 //
-// Stable demo API for 135 St – 2/3 Downtown.
-// Your front-end calls /.netlify/functions/mta135
-// and always gets believable times instead of errors.
+// Stable demo API for 135 St – 2/3 Downtown + M7/M102/M1 southbound buses
+// Returns:
+// - trains: 3 upcoming trains (2/3)
+// - buses: 3 upcoming buses (M7, M102, M1)
+// - weather: simple current conditions
 
 exports.handler = async function () {
   const now = new Date();
 
-  // Fake but realistic minutes
-  const baseMinutes2 = [2, 6, 11];
-  const baseMinutes3 = [4, 9, 15];
+  // ---- TRAINS (2/3 downtown) ----
+  const trainMinutes = [2, 5, 9]; // next 3 trains
+  const trainRoutes = ["2", "3", "2"];
 
-  const trains = [
-    ...baseMinutes2.map((m) => ({
-      route: "2",
-      minutes: m,
-      time: new Date(now.getTime() + m * 60000).toISOString(),
-      destination: "Downtown & Brooklyn",
-    })),
-    ...baseMinutes3.map((m) => ({
-      route: "3",
-      minutes: m,
-      time: new Date(now.getTime() + m * 60000).toISOString(),
-      destination: "Downtown & Brooklyn",
-    })),
-  ].sort((a, b) => a.minutes - b.minutes);
+  const trains = trainMinutes.map((m, idx) => ({
+    route: trainRoutes[idx],
+    minutes: m,
+    time: new Date(now.getTime() + m * 60000).toISOString(),
+    destination: "Downtown"
+  }));
+
+  // ---- BUSES (M7, M102, M1 southbound) ----
+  const busMinutes = [3, 7, 12]; // next 3 buses
+  const busRoutes = ["M7", "M102", "M1"];
+
+  const buses = busMinutes.map((m, idx) => ({
+    route: busRoutes[idx],
+    minutes: m,
+    time: new Date(now.getTime() + m * 60000).toISOString(),
+    destination: "Southbound"
+  }));
+
+  // ---- WEATHER (simple demo; can swap for real API later) ----
+  const weather = {
+    tempF: 72,
+    tempC: 22,
+    condition: "Clear"
+  };
 
   return {
     statusCode: 200,
@@ -34,6 +46,8 @@ exports.handler = async function () {
       direction: "Downtown",
       updatedAt: now.toISOString(),
       trains,
-    }),
+      buses,
+      weather
+    })
   };
 };
